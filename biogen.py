@@ -75,17 +75,22 @@ def create_skeleton_code(newpath, id, sample_content = ''):
     """
     id = slugify(id)
     main_text = """#!/usr/bin/env python
+import sys
 
 def bio_%s(input):
+    # Generally a good idea to strip trailing newlines
+    input = input.rstrip('\\n')
     # Usually you need to split up compared sequences ie:
     # (part_a, part_b) = input.split('\\n')
-    
+
     # Insert code here
     %s
 
     # Result must be returned as a string due to limitations in unit-tests generator
     result = ''
     return str(result)
+    # Perhaps you have a list and need to convert to string
+    # return str(' '.join([str(i) for i in result]))
 
 def main():
     # Take input from user, tidy and run code
@@ -99,8 +104,16 @@ def main():
             input = dlg.GetValue()
             dlg.Destroy()
             result = bio_%s(input)
+            try:
+                import pyperclip
+                copy_to_clipboard = True
+            except ImportError:
+                copy_to_clipboard = False
             # print result to command line
             print(result)
+            if copy_to_clipboard:
+                print('Result also copied to clipboard')
+                pyperclip.copy(result)
         # Assume command line argument is input to code.
         else:
             print(bio_%s(input))
@@ -130,7 +143,7 @@ def create_project(root_folder):
     readme = ask(message = 'What is the description for this problem?')
     create_readme(newpath, readme)
 
-    # Ask for sample dataset and response 
+    # Ask for sample dataset and response
     sample_dataset = ask(message = 'What is the sample dataset?')
     sample_dataset_answer = ask(message = 'What is the sample datasets expected output?')
 
@@ -154,7 +167,7 @@ def main(location):
     app = wx.App()
     app.MainLoop()
     create_project(location)
-    
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
