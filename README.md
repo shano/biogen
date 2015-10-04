@@ -4,7 +4,7 @@ For anyone working on the [Coursera Bioinformatic Algorithms Specialisation](htt
 
 The sample and extra data provided from the Coursera course are converted into valid unit tests, the advantage being to test your code against the datasets involves simply running `python bio_**_test.py`.
 
-The other advantage is this creates a per project virtual environments, using PyPy and a PyPy compatible GTK library, to ensure the fastest possible development, runtime and testing.
+The other advantage is this create a per project virtual environments, using PyPy and a PyPy compatible GTK library, to ensure the fastest possible development, runtime and testing.
 
 # Requirements
 
