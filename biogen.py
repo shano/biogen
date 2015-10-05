@@ -82,7 +82,11 @@ def write_file(newpath, name, content):
     """
     full_file_path = os.path.join(newpath, name.lower())
     full_file = open(full_file_path, 'w')
-    full_file.write(content.encode('utf8'))
+    try:
+        text = content.encode('utf8', 'replace')
+    except UnicodeDecodeError:
+        text = content
+    full_file.write(content)
     full_file.close()
 
 def create_readme(newpath, title, readme):
@@ -173,7 +177,8 @@ def create_skeleton_code(newpath, id, title, sample_content = ''):
     id = slugify(id)
     main_text = """#!/usr/bin/env python
 #%s
-import sys
+from pgi.repository import Gtk
+
 
 class EntryWindow(Gtk.Window):
 
@@ -227,6 +232,7 @@ def bio_%s(input):
 
 def main():
     # Take input from user, tidy and run code
+    import sys
     if len(sys.argv) > 1:
         if sys.argv[1] == 'livetest':
             try:
@@ -234,7 +240,7 @@ def main():
             except ImportError:
                 import sys
                 sys.exit('Please run pip -r requirements.txt from virtualenv')
-            win = EntryWindow(title, message, default_value)
+            win = EntryWindow('Live Run', 'Paste in live input')
             input = win.run()
             result = bio_%s(input)
             try:
