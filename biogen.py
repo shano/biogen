@@ -4,6 +4,51 @@ import sys
 import re
 from pgi.repository import Gtk, GObject
 
+
+class FileChooserWindow(Gtk.Window):
+
+    def __init__(self, ask_title,ask_button):
+        Gtk.Window.__init__(self, title=ask_title)
+
+        box = Gtk.Box(spacing=6)
+        self.add(box)
+
+        button1 = Gtk.Button(ask_button)
+        button1.connect("clicked", self.on_file_clicked)
+        box.add(button1)
+
+        
+    def on_file_clicked(self, widget):
+        self.dialog = Gtk.FileChooserDialog("Please choose a file", self,
+            Gtk.FileChooserAction.OPEN,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+
+        self.add_filters(self.dialog)
+        self.dialog.run()
+        Gtk.main_quit()
+
+    def add_filters(self, dialog):
+        filter_text = Gtk.FileFilter()
+        filter_text.set_name("Text files")
+        filter_text.add_mime_type("text/plain")
+        dialog.add_filter(filter_text)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
+    def run(self):
+        self.show_all()
+        Gtk.main()
+        result = self.dialog.get_filename()
+        self.dialog.destroy()
+        self.destroy()
+        return result
+
+    
+
 class EntryWindow(Gtk.Window):
 
     def __init__(self, ask_title="Title", ask_body="Body", message="Message"):
@@ -20,6 +65,8 @@ class EntryWindow(Gtk.Window):
 
         self.entry = Gtk.Entry()
         self.entry.set_text(ask_body)
+        self.entry.set_max_length(0)
+        self.entry.truncate_multiline = False
         vbox.pack_start(self.entry, True, True, 0)
 
         hbox = Gtk.Box(spacing=6)
@@ -45,6 +92,18 @@ def slugify(string):
     Convert non-alphanums to underscores.
     """
     return re.sub('[^0-9a-zA-Z]+', '_', string).lower()
+
+def ask_file(parent=None, title='', button=''):
+    """
+    Generaically presents a file dialog to a user and returns a reponse
+    via return value.
+    """
+    win = FileChooserWindow(title, button)
+    filename = win.run()
+    with open(filename, 'r') as content_file:
+        content = content_file.read()
+    return content
+
 
 def ask(parent=None, message='', default_value='', title=''):
     """
@@ -179,39 +238,45 @@ def create_skeleton_code(newpath, id, title, sample_content = ''):
 #%s
 from pgi.repository import Gtk
 
+class FileChooserWindow(Gtk.Window):
 
-class EntryWindow(Gtk.Window):
-
-    def __init__(self, ask_title="Title", ask_body="Body", message="Message"):
+    def __init__(self, ask_title,ask_button):
         Gtk.Window.__init__(self, title=ask_title)
-        self.set_size_request(200, 100)
 
-        self.timeout_id = None
+        box = Gtk.Box(spacing=6)
+        self.add(box)
 
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        self.add(vbox)
+        button1 = Gtk.Button(ask_button)
+        button1.connect("clicked", self.on_file_clicked)
+        box.add(button1)
 
-        label = Gtk.Label(message)
-        vbox.pack_start(label, True, True, 0)
+        
+    def on_file_clicked(self, widget):
+        self.dialog = Gtk.FileChooserDialog("Please choose a file", self,
+            Gtk.FileChooserAction.OPEN,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
 
-        self.entry = Gtk.Entry()
-        self.entry.set_text(ask_body)
-        vbox.pack_start(self.entry, True, True, 0)
-
-        hbox = Gtk.Box(spacing=6)
-        vbox.pack_start(hbox, True, True, 0)
-
-        button = Gtk.Button(label="OK")
-        button.connect("clicked",self.on_ok_button_clicked)
-        vbox.pack_start(button, True, True, 0)
-
-    def on_ok_button_clicked(self,button):
+        self.add_filters(self.dialog)
+        self.dialog.run()
         Gtk.main_quit()
+
+    def add_filters(self, dialog):
+        filter_text = Gtk.FileFilter()
+        filter_text.set_name("Text files")
+        filter_text.add_mime_type("text/plain")
+        dialog.add_filter(filter_text)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
 
     def run(self):
         self.show_all()
         Gtk.main()
-        result = self.entry.get_text()
+        result = self.dialog.get_filename()
+        self.dialog.destroy()
         self.destroy()
         return result
 
@@ -240,8 +305,11 @@ def main():
             except ImportError:
                 import sys
                 sys.exit('Please run pip -r requirements.txt from virtualenv')
-            win = EntryWindow('Live Run', 'Paste in live input')
-            input = win.run()
+
+            win = FileChooserWindow("Live Entry", "Select downloaded dataset")
+            filename = win.run()
+            with open(filename, 'r') as content_file:
+                input = content_file.read()
             result = bio_%s(input)
             try:
                 import pyperclip
@@ -292,8 +360,12 @@ def create_project(root_folder):
     sample_dataset_answer = ask(message = 'What is the sample datasets expected output?')
 
     # Ask for extra dataset and response
-    extra_dataset = ask(message = 'What is the extra dataset?')
-    extra_dataset_answer = ask(message = 'What is the extra datasets expected output?')
+    extra_dataset_raw = ask_file(title = 'Extra dataset file', button='Please select extra dataset')
+    if 'Input:' not in extra_dataset_raw or 'Output:' not in extra_dataset_raw:
+        sys.exit('Please select a valid extra dataset file')
+    (extra_dataset, extra_dataset_answer) = extra_dataset_raw.split("Output:")
+    extra_dataset = '\n'.join(extra_dataset.split('\n')[1:]).strip()
+    extra_dataset_answer = extra_dataset_answer.strip()
 
     # Generate unit tests
     sample_ut = create_unittest_text(id, 'sample', sample_dataset, sample_dataset_answer)
