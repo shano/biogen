@@ -359,9 +359,12 @@ def create_project(root_folder):
 
     # Ask for extra dataset and response
     extra_dataset_raw = ask_file(title = 'Extra dataset file', button='Please select extra dataset')
-    if 'Input:' not in extra_dataset_raw or 'Output:' not in extra_dataset_raw:
+    if 'Input:' in extra_dataset_raw and 'Output:' in extra_dataset_raw:
+        (extra_dataset, extra_dataset_answer) = extra_dataset_raw.split("Output:")
+    elif 'Input' in extra_dataset_raw and 'Output' in extra_dataset_raw:
+        (extra_dataset, extra_dataset_answer) = extra_dataset_raw.split("Output")
+    else:
         sys.exit('Please select a valid extra dataset file')
-    (extra_dataset, extra_dataset_answer) = extra_dataset_raw.split("Output:")
     extra_dataset = '\n'.join(extra_dataset.split('\n')[1:]).strip()
     extra_dataset_answer = extra_dataset_answer.strip()
 
