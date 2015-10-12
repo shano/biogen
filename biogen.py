@@ -204,11 +204,9 @@ def create_requirements(newpath):
     """
     Create file containing the projects requirements
     """
-    """pgi
-pyperclip
-pypy
-    """
-    write_file(newpath, 'requirements.txt', 'pgi')
+    requirements ="""pgi
+pyperclip"""
+    write_file(newpath, 'requirements.txt', requirements)
 
 def create_activate_deactivate(newpath):
     """
