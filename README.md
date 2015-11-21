@@ -4,7 +4,7 @@ For anyone working on the [Coursera Bioinformatic Algorithms Specialisation](htt
 
 The sample and extra data provided from the Coursera course are converted into valid unit tests, the advantage being to test your code against the datasets involves simply running `python bio_**_test.py`.
 
-The other advantage is this create a per project virtual environments, using PyPy and a PyPy compatible GTK library, to ensure the fastest possible development, runtime and testing.
+The other advantage is it handles virtual environments/requirements, using PyPy and a PyPy compatible GTK library, to ensure the fastest possible development, runtime and testing.
 
 # Requirements
 
@@ -13,11 +13,11 @@ Simply create a virtualenv and install whatever's in the requirements.txt using 
 # How to run
 1. Run `python biogen.py project_root_folder` via the command line. This root folder is the parent folder for all your bioinformatic algorithms coursework. For example `/home/user/Documents/bioinformatics`
 
-2. Answer the questions that pop-up on the screen.
+2. Answer the questions that pop-up on the screen(simply paste in from Rosalind/Coursera)
 
-3. Within the newly created working directory run `source venv/bin/activate` to enable the new projects virtualenvironment.
+3. Within the project root, if you have not done so run `source venv/bin/activate`.
 
-4. Run `pip install -r requirements.txt` to install the initial project dependencies.
+4. Run `pip install -r requirements.txt` to install the initial project if you have not done so. Any new requirements should be added in here.
 
 5. You should now also have a `bio_**.py` and a `bio_**_test.py`. If you run `python bio_**_test.py` it will throw up two errors, that your code neither passes the sample nor extra dataset unit tests.
 
@@ -31,4 +31,3 @@ Simply create a virtualenv and install whatever's in the requirements.txt using 
 
 * Better testing of inputs
 * Create an activate and deactivate that automatically store the requirements a developer adds while working on code
-* Convert file strings to template files

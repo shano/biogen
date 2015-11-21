@@ -60,9 +60,9 @@ class FileChooserWindow(Gtk.Window):
 
 def bio_{id}(input):
     # Generally a good idea to strip trailing newlines
-    input = input.rstrip('\\n')
+    input = input.rstrip('\n')
     # Usually you need to split up compared sequences ie:
-    # (part_a, part_b) = input.split('\\n')
+    # (part_a, part_b) = input.split('\n')
 
     # Insert code here
     {snippet}

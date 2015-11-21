@@ -187,10 +187,14 @@ def create_unittests(new_path, problem_name, sample_ut, extra_ut):
     write_file(new_path, 'bio'+problem_name+'_test.py', src.format(**rewrites))
 
 
-def create_virtualenv(new_path):
+def create_virtualenv(root_folder):
     """
     If possible create a virtualenv
     """
+    virtual_path = os.path.join(root_folder, 'venv/')
+    if os.path.exists(virtual_path):
+        print('Virtual Environment already exists, skipping....')
+
     ve_exe = which('virtualenv')
     if not ve_exe:
         print('Please install virtualenv if you wish to create per project virtualenvs')
@@ -203,19 +207,18 @@ def create_virtualenv(new_path):
     if not py_exe:
         return False
 
-    virtual_path = os.path.join(new_path, 'venv/')
     import subprocess
     # TODO Add no site packages to enforce proper requirements
     process = subprocess.Popen([ve_exe, "-p", py_exe, virtual_path,'--no-site-packages'])
     process.wait()
-    create_requirements(new_path)
+    create_requirements(root_folder)
 
 
-def create_requirements(new_path):
+def create_requirements(root_folder):
     """ Create file containing the projects requirements """
     with open('templates/requirements.txt', 'r') as content_file:
         requirements = content_file.read()
-        write_file(new_path, 'requirements.txt', requirements)
+        write_file(root_folder, 'requirements.txt', requirements)
 
 
 def create_project_folder(root_folder, problem_name):
@@ -270,7 +273,7 @@ def create_project(root_folder):
 
     # Generate code and virtualenv
     create_skeleton_code(new_path, problem_name, title)
-    create_virtualenv(new_path)
+    create_virtualenv(root_folder)
 
     create_readme(new_path, title, readme)
 
