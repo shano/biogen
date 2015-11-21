@@ -3,7 +3,6 @@ import os
 import sys
 import re
 from pgi.repository import Gtk, GObject
-from string import Template
 
 
 class FileChooserWindow(Gtk.Window):
@@ -89,15 +88,13 @@ class EntryWindow(Gtk.Window):
 
 
 def slugify(string):
-    """
-    Convert non-alphanums to underscores.
-    """
+    """ Convert non-alphanums to underscores """
     return re.sub('[^0-9a-zA-Z]+', '_', string).lower()
 
 
 def ask_file(title='', button=''):
     """
-    Generaically presents a file dialog to a user and returns a reponse
+    Generically presents a file dialog to a user and returns a response
     via return value.
     """
     win = FileChooserWindow(title, button)
@@ -109,7 +106,7 @@ def ask_file(title='', button=''):
 
 def ask(message='', default_value='', title=''):
     """
-    Generaically presents a message to a user and returns a reponse
+    Generically presents a message to a user and returns a response
     via return value.
     """
     win = EntryWindow(title, default_value, message)
@@ -143,8 +140,6 @@ def write_file(new_path, name, content):
     """
     Generic file writing function.
     """
-    print(new_path)
-    print(name)
     full_file_path = os.path.join(new_path, name.lower())
     full_file = open(full_file_path, 'w')
     try:
@@ -155,142 +150,140 @@ def write_file(new_path, name, content):
     full_file.close()
 
 
-def create_readme(new_path, title, body):
-    """
-    Create project readme file.
-    """
-    """ Create main source. """
-    readme = open('templates/readme.txt')
-    src = readme.read()
-    rewrites = {'title': title, 'body': body}
-    write_file(new_path, 'readme.md', src.format(**rewrites))
+def read_file_contents(path, filename=None):
+    if filename:
+        path = os.path.join(path, filename)
+    file_handle = open(path)
+    return file_handle.read()
 
 
-def create_unittest_text(problem_name, test_type, data_set, data_set_answer):
-    problem_name = slugify(problem_name)
-    unit_tests = open('templates/unit_tests.py.txt')
-    src = unit_tests.read()
-    rewrites = {'test_type': test_type, 'problem_name': problem_name,
-                'data_set': data_set, 'data_set_answer': data_set_answer,
-                'space': '        '}
-    return src.format(**rewrites)
+class Biogen():
 
+    def __init__(self, root_folder):
+        self.template_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates/')
+        self.root_folder = root_folder
 
-def create_unittests(new_path, problem_name, sample_ut, extra_ut):
-    """Create the unit test file"""
-    problem_name = slugify(problem_name)
-    unit_tests = open('templates/skeleton_unit_tests.py.txt')
-    src = unit_tests.read()
-    rewrites = {'problem_name': problem_name, 'sample_unit_test': sample_ut, 'extra_unit_test': extra_ut}
-    print(rewrites)
-    print(src.format(**rewrites))
-    write_file(new_path, 'bio'+problem_name+'_test.py', src.format(**rewrites))
+    def create_readme(self, new_path, title, body):
+        """ Create project readme file."""
+        src = read_file_contents(self.template_folder, 'readme.txt')
+        rewrites = {'title': title, 'body': body}
+        write_file(new_path, 'readme.md', src.format(**rewrites))
 
+    def create_unittest_text(self, problem_name, test_type, data_set, data_set_answer):
+        problem_name = slugify(problem_name)
+        src = read_file_contents(self.template_folder, 'unit_tests.py.txt')
+        rewrites = {'test_type': test_type, 'problem_name': problem_name,
+                    'data_set': data_set, 'data_set_answer': data_set_answer,
+                    'space': '        '}
+        return src.format(**rewrites)
 
-def create_virtualenv(root_folder):
-    """
-    If possible create a virtualenv
-    """
-    virtual_path = os.path.join(root_folder, 'venv/')
-    if os.path.exists(virtual_path):
-        print('Virtual Environment already exists, skipping....')
+    def create_unittests(self, new_path, problem_name, sample_ut, extra_ut):
+        """Create the unit test file"""
+        problem_name = slugify(problem_name)
+        src = read_file_contents(self.template_folder, 'skeleton_unit_tests.py.txt')
+        rewrites = {'problem_name': problem_name, 'sample_unit_test': sample_ut, 'extra_unit_test': extra_ut}
+        write_file(new_path, 'bio'+problem_name+'_test.py', src.format(**rewrites))
 
-    ve_exe = which('virtualenv')
-    if not ve_exe:
-        print('Please install virtualenv if you wish to create per project virtualenvs')
-        return False
+    def create_skeleton_code(self, new_path, problem_name, title, sample_content=''):
+        """ Create main source. """
+        src = read_file_contents(self.template_folder, 'skeleton.py.txt')
+        problem_name = slugify(problem_name)
+        rewrites = {'title': title, 'id': problem_name, 'snippet': sample_content}
+        write_file(new_path, 'bio'+problem_name+'.py', src.format(**rewrites))
 
-    py_exe = which('pypy')
-    if not py_exe:
-        py_exe = which('python')
+    def create_requirements(self):
+        """ Create file containing the projects requirements """
+        src = read_file_contents(self.template_folder, 'requirements.txt')
+        write_file(self.root_folder, 'requirements.txt', src)
 
-    if not py_exe:
-        return False
+    def create_virtualenv(self):
+        """
+        If possible create a virtualenv
+        """
+        virtual_path = os.path.join(self.root_folder, 'venv/')
+        if os.path.exists(virtual_path):
+            print('Virtual Environment already exists, skipping....')
+            return False
 
-    import subprocess
-    # TODO Add no site packages to enforce proper requirements
-    process = subprocess.Popen([ve_exe, "-p", py_exe, virtual_path,'--no-site-packages'])
-    process.wait()
-    create_requirements(root_folder)
+        ve_exe = which('virtualenv')
+        if not ve_exe:
+            print('Please install virtualenv if you wish to create per project virtualenvs')
+            return False
 
+        py_exe = which('pypy')
+        if not py_exe:
+            py_exe = which('python')
 
-def create_requirements(root_folder):
-    """ Create file containing the projects requirements """
-    with open('templates/requirements.txt', 'r') as content_file:
-        requirements = content_file.read()
-        write_file(root_folder, 'requirements.txt', requirements)
+        if not py_exe:
+            return False
 
+        import subprocess
+        # TODO Add no site packages to enforce proper requirements
+        process = subprocess.Popen([ve_exe, "-p", py_exe, virtual_path, '--no-site-packages'])
+        process.wait()
+        self.create_requirements()
 
-def create_project_folder(root_folder, problem_name):
-    """
-    Create folder for project based on root.
-    """
-    problem_name = slugify(problem_name)
-    new_path = os.path.join(root_folder, problem_name)
-    if not os.path.exists(new_path):
-        os.makedirs(new_path)
-    else:
-        sys.exit('Cannot run as project folder already exists!')
-    return new_path
+    def create_project_folder(self, problem_name):
+        """
+        Create folder for project based on root.
+        """
+        problem_name = slugify(problem_name)
+        new_path = os.path.join(self.root_folder, problem_name)
+        if not os.path.exists(new_path):
+            os.makedirs(new_path)
+        else:
+            sys.exit('Cannot run as project folder already exists!')
+        return new_path
 
+    def create_project(self):
+        """ Take in project info from user and generate project files. """
+        # Ask for text id/short description create folder/initial files
+        problem_name = ask(message='What is the id of the question?', default_value='Ex:BA1A')
+        new_path = self.create_project_folder(problem_name)
 
-def create_skeleton_code(new_path, problem_name, title, sample_content=''):
-    """ Create main source. """
-    skeleton = open('templates/skeleton.py.txt')
-    src = skeleton.read()
-    problem_name = slugify(problem_name)
-    rewrites = {'title': title, 'id': problem_name, 'snippet': sample_content}
-    write_file(new_path, 'bio'+problem_name+'.py', src.format(**rewrites))
+        # Ask for text id/short description create folder/initial files
+        title = ask(message='What is the title of the question?',
+                    default_value='Ex:Find All Approximate Occurrences of a Pattern in a String')
+        if not title:
+            title = problem_name
 
+        # Ask for text description and create a readme.md
+        readme = ask(message='What is the description for this problem?')
 
-def create_project(root_folder):
-    """ Take in project info from user and generate project files. """
-    # Ask for text id/short description create folder/initial files
-    problem_name = ask(message='What is the id of the question?', default_value='Ex:BA1A')
-    new_path = create_project_folder(root_folder, problem_name)
+        # Ask for sample data set and response
+        sample_data_set = ask(message='What is the sample data set?')
+        sample_data_set_answer = ask(message='What is the sample data sets expected output?')
 
-    # Ask for text id/short description create folder/initial files
-    title = ask(message='What is the title of the question?',
-                default_value='Ex:Find All Approximate Occurrences of a Pattern in a String')
-    if not title:
-        title = problem_name
+        # Ask for extra data set and response
+        extra_data_set_raw = ask_file(title='Extra data set file', button='Please select extra data set')
+        if 'Input:' in extra_data_set_raw and 'Output:' in extra_data_set_raw:
+            (extra_data_set, extra_data_set_answer) = extra_data_set_raw.split("Output:")
+        elif 'Input' in extra_data_set_raw and 'Output' in extra_data_set_raw:
+            (extra_data_set, extra_data_set_answer) = extra_data_set_raw.split("Output")
+        else:
+            sys.exit('Please select a valid extra data set file')
 
-    # Ask for text description and create a readme.md
-    readme = ask(message='What is the description for this problem?')
+        # Generate code and virtualenv
+        self.create_skeleton_code(new_path, problem_name, title)
+        self.create_virtualenv()
 
-    # Ask for sample data set and response
-    sample_data_set = ask(message='What is the sample data set?')
-    sample_data_set_answer = ask(message='What is the sample data sets expected output?')
+        self.create_readme(new_path, title, readme)
 
-    # Ask for extra data set and response
-    extra_data_set_raw = ask_file(title='Extra data set file', button='Please select extra data set')
-    if 'Input:' in extra_data_set_raw and 'Output:' in extra_data_set_raw:
-        (extra_data_set, extra_data_set_answer) = extra_data_set_raw.split("Output:")
-    elif 'Input' in extra_data_set_raw and 'Output' in extra_data_set_raw:
-        (extra_data_set, extra_data_set_answer) = extra_data_set_raw.split("Output")
-    else:
-        sys.exit('Please select a valid extra data set file')
+        extra_data_set = '\n'.join(extra_data_set.split('\n')[1:]).strip()
+        extra_data_set_answer = extra_data_set_answer.strip()
 
-    # Generate code and virtualenv
-    create_skeleton_code(new_path, problem_name, title)
-    create_virtualenv(root_folder)
+        # Generate unit tests
+        sample_ut = self.create_unittest_text(problem_name, 'sample', sample_data_set, sample_data_set_answer)
+        extra_ut = self.create_unittest_text(problem_name, 'extra', extra_data_set, extra_data_set_answer)
+        self.create_unittests(new_path, problem_name, sample_ut, extra_ut)
 
-    create_readme(new_path, title, readme)
-
-    extra_data_set = '\n'.join(extra_data_set.split('\n')[1:]).strip()
-    extra_data_set_answer = extra_data_set_answer.strip()
-
-    # Generate unit tests
-    sample_ut = create_unittest_text(problem_name, 'sample', sample_data_set, sample_data_set_answer)
-    extra_ut = create_unittest_text(problem_name, 'extra', extra_data_set, extra_data_set_answer)
-    create_unittests(new_path, problem_name, sample_ut, extra_ut)
-
-    # TODO generate activate.sh
-    # TODO generate deactivate.sh(use pip freeze)
+        # TODO generate activate.sh
+        # TODO generate deactivate.sh(use pip freeze)
 
 
 def main(project_location):
-    create_project(project_location)
+    biogen = Biogen(project_location)
+    biogen.create_project()
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

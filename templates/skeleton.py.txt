@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#{title}
+# {title}
 from pgi.repository import Gtk
 import sys,os
 # Injecting this to allow importing of other solutions
