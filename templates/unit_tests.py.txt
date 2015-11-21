@@ -1,0 +1,2 @@
+def test_{problem_name}_{test_type}(self):
+{space}self.assertEqual(bio{problem_name}.bio_{problem_name}("""{data_set}"""), """{data_set_answer}""")

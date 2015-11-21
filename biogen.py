@@ -3,6 +3,7 @@ import os
 import sys
 import re
 from pgi.repository import Gtk, GObject
+from string import Template
 
 
 class FileChooserWindow(Gtk.Window):
@@ -17,18 +18,18 @@ class FileChooserWindow(Gtk.Window):
         button1.connect("clicked", self.on_file_clicked)
         box.add(button1)
 
-        
-    def on_file_clicked(self, widget):
         self.dialog = Gtk.FileChooserDialog("Please choose a file", self,
-            Gtk.FileChooserAction.OPEN,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+                                            Gtk.FileChooserAction.OPEN,
+                                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
 
+    def on_file_clicked(self, widget):
         self.add_filters(self.dialog)
         self.dialog.run()
         Gtk.main_quit()
 
-    def add_filters(self, dialog):
+    @staticmethod
+    def add_filters(dialog):
         filter_text = Gtk.FileFilter()
         filter_text.set_name("Text files")
         filter_text.add_mime_type("text/plain")
@@ -47,7 +48,6 @@ class FileChooserWindow(Gtk.Window):
         self.destroy()
         return result
 
-    
 
 class EntryWindow(Gtk.Window):
 
@@ -76,7 +76,8 @@ class EntryWindow(Gtk.Window):
         button.connect("clicked",self.on_ok_button_clicked)
         vbox.pack_start(button, True, True, 0)
 
-    def on_ok_button_clicked(self,button):
+    @staticmethod
+    def on_ok_button_clicked(button):
         Gtk.main_quit()
 
     def run(self):
@@ -93,7 +94,8 @@ def slugify(string):
     """
     return re.sub('[^0-9a-zA-Z]+', '_', string).lower()
 
-def ask_file(parent=None, title='', button=''):
+
+def ask_file(title='', button=''):
     """
     Generaically presents a file dialog to a user and returns a reponse
     via return value.
@@ -105,7 +107,7 @@ def ask_file(parent=None, title='', button=''):
     return content
 
 
-def ask(parent=None, message='', default_value='', title=''):
+def ask(message='', default_value='', title=''):
     """
     Generaically presents a message to a user and returns a reponse
     via return value.
@@ -113,16 +115,18 @@ def ask(parent=None, message='', default_value='', title=''):
     win = EntryWindow(title, default_value, message)
     return win.run()
 
+
 def which(program):
     """
     Function to check if a command exists
     """
     import os
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    fpath, fname = os.path.split(program)
-    if fpath:
+    def is_exe(executable_file_path):
+        return os.path.isfile(executable_file_path) and os.access(executable_file_path, os.X_OK)
+
+    file_path, file_name = os.path.split(program)
+    if file_path:
         if is_exe(program):
             return program
     else:
@@ -135,49 +139,55 @@ def which(program):
     return None
 
 
-def write_file(newpath, name, content):
+def write_file(new_path, name, content):
     """
     Generic file writing function.
     """
-    full_file_path = os.path.join(newpath, name.lower())
+    print(new_path)
+    print(name)
+    full_file_path = os.path.join(new_path, name.lower())
     full_file = open(full_file_path, 'w')
     try:
         text = content.encode('utf8', 'replace')
     except UnicodeDecodeError:
         text = content
-    full_file.write(content)
+    full_file.write(text)
     full_file.close()
 
-def create_readme(newpath, title, readme):
+
+def create_readme(new_path, title, body):
     """
     Create project readme file.
     """
-    readme = """# %s
-    %s""" % (title, readme)
-    write_file(newpath, 'readme.md', readme)
+    """ Create main source. """
+    readme = open('templates/readme.txt')
+    src = readme.read()
+    rewrites = {'title': title, 'body': body}
+    write_file(new_path, 'readme.md', src.format(**rewrites))
 
-def create_unittest_text(id, test_type, dataset, dataset_answer):
-    id = slugify(id)
-    return """
-    def test_%s_%s(self):
-        self.assertEqual(bio%s.bio_%s(\"\"\"%s\"\"\"), \"\"\"%s\"\"\")""" % (id, test_type, id, id, dataset, dataset_answer)
 
-def create_unittests(newpath, id, sample_ut, extra_ut):
-    id = slugify(id)
-    unittest_text = """
-import unittest
-import bio%s
+def create_unittest_text(problem_name, test_type, data_set, data_set_answer):
+    problem_name = slugify(problem_name)
+    unit_tests = open('templates/unit_tests.py.txt')
+    src = unit_tests.read()
+    rewrites = {'test_type': test_type, 'problem_name': problem_name,
+                'data_set': data_set, 'data_set_answer': data_set_answer,
+                'space': '        '}
+    return src.format(**rewrites)
 
-class Bio%sTestCase(unittest.TestCase):
-    %s
-    %s
 
-if __name__ == '__main__':
-    unittest.main()""" % (id, id, sample_ut, extra_ut)
+def create_unittests(new_path, problem_name, sample_ut, extra_ut):
+    """Create the unit test file"""
+    problem_name = slugify(problem_name)
+    unit_tests = open('templates/skeleton_unit_tests.py.txt')
+    src = unit_tests.read()
+    rewrites = {'problem_name': problem_name, 'sample_unit_test': sample_ut, 'extra_unit_test': extra_ut}
+    print(rewrites)
+    print(src.format(**rewrites))
+    write_file(new_path, 'bio'+problem_name+'_test.py', src.format(**rewrites))
 
-    write_file(newpath, 'bio'+id+'_test.py', unittest_text)
 
-def create_virtualenv(newpath):
+def create_virtualenv(new_path):
     """
     If possible create a virtualenv
     """
@@ -188,204 +198,103 @@ def create_virtualenv(newpath):
 
     py_exe = which('pypy')
     if not py_exe:
-        python = which('python')
+        py_exe = which('python')
 
     if not py_exe:
         return False
 
-    venv_path = os.path.join(newpath, 'venv/')
+    virtual_path = os.path.join(new_path, 'venv/')
     import subprocess
     # TODO Add no site packages to enforce proper requirements
-    proc = subprocess.Popen([ve_exe, "-p", py_exe, venv_path,'--no-site-packages'])
-    proc.wait()
-    create_requirements(newpath)
+    process = subprocess.Popen([ve_exe, "-p", py_exe, virtual_path,'--no-site-packages'])
+    process.wait()
+    create_requirements(new_path)
 
-def create_requirements(newpath):
-    """
-    Create file containing the projects requirements
-    """
-    requirements ="""pgi
-pyperclip"""
-    write_file(newpath, 'requirements.txt', requirements)
 
-def create_activate_deactivate(newpath):
-    """
-    This will create scripts to run within the project to prepare virtualenvs.
-    """
-    # Use write_file for this!
-    pass
+def create_requirements(new_path):
+    """ Create file containing the projects requirements """
+    with open('templates/requirements.txt', 'r') as content_file:
+        requirements = content_file.read()
+        write_file(new_path, 'requirements.txt', requirements)
 
-def create_project_folder(root_folder, id):
+
+def create_project_folder(root_folder, problem_name):
     """
     Create folder for project based on root.
     """
-    id = slugify(id)
-    newpath = os.path.join(root_folder, id)
-    if not os.path.exists(newpath):
-        os.makedirs(newpath)
+    problem_name = slugify(problem_name)
+    new_path = os.path.join(root_folder, problem_name)
+    if not os.path.exists(new_path):
+        os.makedirs(new_path)
     else:
         sys.exit('Cannot run as project folder already exists!')
-    return newpath
-
-def create_skeleton_code(newpath, id, title, sample_content = ''):
-    """
-    Create main source.
-    """
-    id = slugify(id)
-    main_text = """#!/usr/bin/env python
-#%s
-from pgi.repository import Gtk
-
-class FileChooserWindow(Gtk.Window):
-
-    def __init__(self, ask_title,ask_button):
-        Gtk.Window.__init__(self, title=ask_title)
-
-        box = Gtk.Box(spacing=6)
-        self.add(box)
-
-        button1 = Gtk.Button(ask_button)
-        button1.connect("clicked", self.on_file_clicked)
-        box.add(button1)
-
-        
-    def on_file_clicked(self, widget):
-        self.dialog = Gtk.FileChooserDialog("Please choose a file", self,
-            Gtk.FileChooserAction.OPEN,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
-
-        self.add_filters(self.dialog)
-        self.dialog.run()
-        Gtk.main_quit()
-
-    def add_filters(self, dialog):
-        filter_text = Gtk.FileFilter()
-        filter_text.set_name("Text files")
-        filter_text.add_mime_type("text/plain")
-        dialog.add_filter(filter_text)
-
-        filter_any = Gtk.FileFilter()
-        filter_any.set_name("Any files")
-        filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
-
-    def run(self):
-        self.show_all()
-        Gtk.main()
-        result = self.dialog.get_filename()
-        self.dialog.destroy()
-        self.destroy()
-        return result
-
-def bio_%s(input):
-    # Generally a good idea to strip trailing newlines
-    input = input.rstrip('\\n')
-    # Usually you need to split up compared sequences ie:
-    # (part_a, part_b) = input.split('\\n')
-
-    # Insert code here
-    %s
-
-    # Result must be returned as a string due to limitations in unit-tests generator
-    result = ''
-    return str(result)
-    # Perhaps you have a list and need to convert to string
-    # return str(' '.join([str(i) for i in result]))
-
-def main():
-    # Take input from user, tidy and run code
-    import sys
-    if len(sys.argv) > 1:
-        if sys.argv[1] == 'livetest':
-            try:
-                from pgi.repository import Gtk, GObject
-            except ImportError:
-                import sys
-                sys.exit('Please run pip -r requirements.txt from virtualenv')
-
-            win = FileChooserWindow("Live Entry", "Select downloaded dataset")
-            filename = win.run()
-            with open(filename, 'r') as content_file:
-                input = content_file.read()
-            result = bio_%s(input)
-            try:
-                import pyperclip
-                copy_to_clipboard = True
-            except ImportError:
-                copy_to_clipboard = False
-            # print result to command line
-            print(result)
-            if copy_to_clipboard:
-                print('Result also copied to clipboard')
-                pyperclip.copy(result)
-        # Assume command line argument is input to code.
-        else:
-            print(bio_%s(input))
-    else:
-        print('Please supply a valid argument')
-
-if __name__ == '__main__':
-    main()""" % (title, id, sample_content, id, id)
-    write_file(newpath, 'bio'+id+'.py', main_text)
+    return new_path
 
 
+def create_skeleton_code(new_path, problem_name, title, sample_content=''):
+    """ Create main source. """
+    skeleton = open('templates/skeleton.py.txt')
+    src = skeleton.read()
+    problem_name = slugify(problem_name)
+    rewrites = {'title': title, 'id': problem_name, 'snippet': sample_content}
+    write_file(new_path, 'bio'+problem_name+'.py', src.format(**rewrites))
 
 
 def create_project(root_folder):
-    """
-    Take in project info from user and generate project files.
-    """
+    """ Take in project info from user and generate project files. """
     # Ask for text id/short description create folder/initial files
-    id = ask(message = 'What is the id of the question?', default_value='Ex:BA1A')
+    problem_name = ask(message='What is the id of the question?', default_value='Ex:BA1A')
+    new_path = create_project_folder(root_folder, problem_name)
 
     # Ask for text id/short description create folder/initial files
-    title = ask(message = 'What is the title of the question?', default_value='Ex:Find All Approximate Occurrences of a Pattern in a String')
+    title = ask(message='What is the title of the question?',
+                default_value='Ex:Find All Approximate Occurrences of a Pattern in a String')
     if not title:
-        title = id
-
-    # Generate folder and virtualenv
-    newpath = create_project_folder(root_folder, id)
-    create_skeleton_code(newpath, id, title)
-    create_virtualenv(newpath)
+        title = problem_name
 
     # Ask for text description and create a readme.md
-    readme = ask(message = 'What is the description for this problem?')
-    create_readme(newpath, title, readme)
+    readme = ask(message='What is the description for this problem?')
 
-    # Ask for sample dataset and response
-    sample_dataset = ask(message = 'What is the sample dataset?')
-    sample_dataset_answer = ask(message = 'What is the sample datasets expected output?')
+    # Ask for sample data set and response
+    sample_data_set = ask(message='What is the sample data set?')
+    sample_data_set_answer = ask(message='What is the sample data sets expected output?')
 
-    # Ask for extra dataset and response
-    extra_dataset_raw = ask_file(title = 'Extra dataset file', button='Please select extra dataset')
-    if 'Input:' in extra_dataset_raw and 'Output:' in extra_dataset_raw:
-        (extra_dataset, extra_dataset_answer) = extra_dataset_raw.split("Output:")
-    elif 'Input' in extra_dataset_raw and 'Output' in extra_dataset_raw:
-        (extra_dataset, extra_dataset_answer) = extra_dataset_raw.split("Output")
+    # Ask for extra data set and response
+    extra_data_set_raw = ask_file(title='Extra data set file', button='Please select extra data set')
+    if 'Input:' in extra_data_set_raw and 'Output:' in extra_data_set_raw:
+        (extra_data_set, extra_data_set_answer) = extra_data_set_raw.split("Output:")
+    elif 'Input' in extra_data_set_raw and 'Output' in extra_data_set_raw:
+        (extra_data_set, extra_data_set_answer) = extra_data_set_raw.split("Output")
     else:
-        sys.exit('Please select a valid extra dataset file')
-    extra_dataset = '\n'.join(extra_dataset.split('\n')[1:]).strip()
-    extra_dataset_answer = extra_dataset_answer.strip()
+        sys.exit('Please select a valid extra data set file')
+
+    # Generate code and virtualenv
+    create_skeleton_code(new_path, problem_name, title)
+    create_virtualenv(new_path)
+
+    create_readme(new_path, title, readme)
+
+    extra_data_set = '\n'.join(extra_data_set.split('\n')[1:]).strip()
+    extra_data_set_answer = extra_data_set_answer.strip()
 
     # Generate unit tests
-    sample_ut = create_unittest_text(id, 'sample', sample_dataset, sample_dataset_answer)
-    extra_ut = create_unittest_text(id, 'extra', extra_dataset, extra_dataset_answer)
-    create_unittests(newpath, id, sample_ut, extra_ut)
+    sample_ut = create_unittest_text(problem_name, 'sample', sample_data_set, sample_data_set_answer)
+    extra_ut = create_unittest_text(problem_name, 'extra', extra_data_set, extra_data_set_answer)
+    create_unittests(new_path, problem_name, sample_ut, extra_ut)
 
     # TODO generate activate.sh
     # TODO generate deactivate.sh(use pip freeze)
 
 
-def main(location):
-    create_project(location)
+def main(project_location):
+    create_project(project_location)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-      location = sys.argv[1]
-      if os.path.exists(location):
-        main(location)
-      else:
-        print('Invalid path specified')
+        location = sys.argv[1]
+        if os.path.exists(location):
+            main(location)
+        else:
+            print('Invalid path specified')
     else:
-      print('Please specify folder path')
+        print('Please specify folder path')

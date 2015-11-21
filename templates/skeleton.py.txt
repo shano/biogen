@@ -1,0 +1,109 @@
+#!/usr/bin/env python
+#{title}
+from pgi.repository import Gtk
+import sys,os
+# Injecting this to allow importing of other solutions
+sys.path.insert(0, os.path.abspath('..'))
+
+
+class FileChooserWindow(Gtk.Window):
+    """This class provides GTK window for supplying live test file"""
+
+    def __init__(self, ask_title,ask_button):
+        Gtk.Window.__init__(self, title=ask_title)
+
+        box = Gtk.Box(spacing=6)
+        self.add(box)
+
+        button1 = Gtk.Button(ask_button)
+        button1.connect("clicked", self.on_file_clicked)
+        box.add(button1)
+
+        self.dialog = Gtk.FileChooserDialog("Please choose a file", self,
+                                            Gtk.FileChooserAction.OPEN,
+                                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+
+    def on_file_clicked(self, widget):
+        """Handle submission of text"""
+        self.add_filters(self.dialog)
+        self.dialog.run()
+        Gtk.main_quit()
+
+    @staticmethod
+    def add_filters(dialog):
+        """
+        Add in filters to show only relevant files in picker
+        :param dialog: GTK dialog to filter
+        """
+        filter_text = Gtk.FileFilter()
+        filter_text.set_name("Text files")
+        filter_text.add_mime_type("text/plain")
+        dialog.add_filter(filter_text)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
+    def run(self):
+        """
+        :return: Filename selected
+        """
+        self.show_all()
+        Gtk.main()
+        result = self.dialog.get_filename()
+        self.dialog.destroy()
+        self.destroy()
+        return result
+
+
+def bio_{id}(input):
+    # Generally a good idea to strip trailing newlines
+    input = input.rstrip('\\n')
+    # Usually you need to split up compared sequences ie:
+    # (part_a, part_b) = input.split('\\n')
+
+    # Insert code here
+    {snippet}
+
+    # Result must be returned as a string due to limitations in unit-tests generator
+    result = ''
+    return str(result)
+    # Perhaps you have a list and need to convert to string
+    # return str(' '.join([str(i) for i in result]))
+
+def main():
+    # Take input from user, tidy and run code
+    import sys
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'livetest':
+            try:
+                from pgi.repository import Gtk, GObject
+            except ImportError:
+                import sys
+                sys.exit('Please run pip -r requirements.txt from virtualenv')
+
+            win = FileChooserWindow("Live Entry", "Select downloaded dataset")
+            filename = win.run()
+            with open(filename, 'r') as content_file:
+                input = content_file.read()
+            result = bio_{id}(input)
+            try:
+                import pyperclip
+                copy_to_clipboard = True
+            except ImportError:
+                copy_to_clipboard = False
+            # print result to command line
+            print(result)
+            if copy_to_clipboard:
+                print('Result also copied to clipboard')
+                pyperclip.copy(result)
+        # Assume command line argument is input to code.
+        else:
+            print(bio_{id}(input))
+    else:
+        print('Please supply a valid argument')
+
+if __name__ == '__main__':
+    main()

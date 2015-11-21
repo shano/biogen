@@ -1,0 +1,9 @@
+import unittest
+import bio{problem_name}
+
+class Bio{problem_name}TestCase(unittest.TestCase):
+    {sample_unit_test}
+    {extra_unit_test}
+
+if __name__ == '__main__':
+    unittest.main()
