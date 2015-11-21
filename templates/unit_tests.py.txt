@@ -1,2 +1,9 @@
 def test_{problem_name}_{test_type}(self):
-{space}self.assertEqual(bio{problem_name}.bio_{problem_name}("""{data_set}"""), """{data_set_answer}""")
+        correct_answer = """{data_set_answer}"""
+        code_answer = bio{problem_name}.bio_{problem_name}("""{data_set}""")
+        if correct_answer.count('\n') > 0:
+            # If a multi-line solution, test each line
+            self.assertEqual(correct_answer.count('\n'), code_answer.count('\n'))
+            self.assertEqual(sorted(correct_answer.split('\n')), sorted(correct_answer.split('\n')))
+        else:
+            self.assertEqual(correct_answer, code_answer)
