@@ -4,6 +4,6 @@ def test_{problem_name}_{test_type}(self):
         if correct_answer.count('\n') > 0:
             # If a multi-line solution, test each line
             self.assertEqual(correct_answer.count('\n'), code_answer.count('\n'))
-            self.assertEqual(sorted(correct_answer.split('\n')), sorted(correct_answer.split('\n')))
+            self.assertEqual(sorted(correct_answer.split('\n')), sorted(code_answer.split('\n')))
         else:
             self.assertEqual(correct_answer, code_answer)
