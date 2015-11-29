@@ -59,7 +59,12 @@ class FileChooserWindow(Gtk.Window):
         return result
 
 
-def bio_{id}(input):
+def bio_{id}(input, live=True):
+    """
+    :param input: The input data, in it's raw string format
+    :param live: Sometimes different dependencies are needed for live/test datasets
+    :return: string representing the result to be compared to unit-test/paste into result
+    """
     # Generally a good idea to strip trailing newlines
     input = input.rstrip('\n')
     # Usually you need to split up compared sequences ie:
@@ -75,7 +80,7 @@ def bio_{id}(input):
     # return str(' '.join([str(i) for i in result]))
 
 def main():
-    # Take input from user, tidy and run code
+    """ Take input from user, tidy and run code """
     import sys
     if len(sys.argv) > 1:
         if sys.argv[1] == 'livetest':

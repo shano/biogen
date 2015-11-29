@@ -169,6 +169,10 @@ class Biogen():
         rewrites = {'title': title, 'body': body}
         write_file(new_path, 'readme.md', src.format(**rewrites))
 
+    def create_init(self, new_path):
+        """ Creating an __init__.py for easier import of code to other modules """
+        write_file(new_path, '__init__.py', '')
+
     def create_unittest_text(self, problem_name, test_type, data_set, data_set_answer):
         problem_name = slugify(problem_name)
         src = read_file_contents(self.template_folder, 'unit_tests.py.txt')
@@ -178,7 +182,7 @@ class Biogen():
         return src.format(**rewrites)
 
     def create_unittests(self, new_path, problem_name, sample_ut, extra_ut):
-        """Create the unit test file"""
+        """ Create the unit test file """
         problem_name = slugify(problem_name)
         src = read_file_contents(self.template_folder, 'skeleton_unit_tests.py.txt')
         rewrites = {'problem_name': problem_name, 'sample_unit_test': sample_ut, 'extra_unit_test': extra_ut}
@@ -197,9 +201,7 @@ class Biogen():
         write_file(self.root_folder, 'requirements.txt', src)
 
     def create_virtualenv(self):
-        """
-        If possible create a virtualenv
-        """
+        """ If possible create a virtualenv """
         virtual_path = os.path.join(self.root_folder, 'venv/')
         if os.path.exists(virtual_path):
             print('Virtual Environment already exists, skipping....')
@@ -218,15 +220,12 @@ class Biogen():
             return False
 
         import subprocess
-        # TODO Add no site packages to enforce proper requirements
         process = subprocess.Popen([ve_exe, "-p", py_exe, virtual_path, '--no-site-packages'])
         process.wait()
         self.create_requirements()
 
     def create_project_folder(self, problem_name):
-        """
-        Create folder for project based on root.
-        """
+        """ Create folder for project based on root. """
         problem_name = slugify(problem_name)
         new_path = os.path.join(self.root_folder, problem_name)
         if not os.path.exists(new_path):
@@ -272,13 +271,12 @@ class Biogen():
         extra_data_set = '\n'.join(extra_data_set.split('\n')[1:]).strip()
         extra_data_set_answer = extra_data_set_answer.strip()
 
+        self.create_init(new_path)
+
         # Generate unit tests
         sample_ut = self.create_unittest_text(problem_name, 'sample', sample_data_set, sample_data_set_answer)
         extra_ut = self.create_unittest_text(problem_name, 'extra', extra_data_set, extra_data_set_answer)
         self.create_unittests(new_path, problem_name, sample_ut, extra_ut)
-
-        # TODO generate activate.sh
-        # TODO generate deactivate.sh(use pip freeze)
 
 
 def main(project_location):
